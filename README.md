@@ -24,12 +24,6 @@ Installeer de benodigde dependencies:
 pip install -r requirements.txt
 ```
 
-Of handmatig:
-
-```bash
-pip install tk pyttsx3 SpeechRecognition google-generativeai
-```
-
 ---
 
 ## 🚀 **Hoe te starten**
