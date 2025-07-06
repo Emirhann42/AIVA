@@ -1,0 +1,6 @@
+tk
+SpeechRecognition
+google-generativeai
+edge-tts
+playsound==1.2.2
+pyaudio
