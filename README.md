@@ -1,30 +1,30 @@
 # 🧠 **AIVA Chatbot**
 
-**AIVA** is a desktop chatbot powered by **Gemini 2.0 Flash**. It supports both text and voice interactions, dark mode, and saves your chat history locally for seamless conversations.
+**AIVA** is een desktop chatbot aangedreven door **Gemini 2.0 Flash**. Het ondersteunt zowel tekst- als spraakinteracties, een donkere modus en slaat je chatgeschiedenis lokaal op voor naadloze gesprekken.
 
 ---
 
-## ✨ **Features**
+## ✨ **Functies**
 
-* 💬 **Gemini-powered AI responses**
-* 🎤 **Voice input** using `SpeechRecognition`
-* 🔊 **Voice output** using `pyttsx3`
-* 🌙 **Dark Mode** toggle
-* 🗃️ **Chat history** saved to local file
-* 🔐 **API Key** prompt on first run
-* 📋 **User-friendly menu** (Clear History, Voice toggle, Language Selection for TTS, Exit)
+* 💬 **Gemini-aangedreven AI-antwoorden**
+* 🎤 **Spraakinvoer** via `SpeechRecognition`
+* 🔊 **Spraakuitvoer** via `pyttsx3`
+* 🌙 **Donkere modus** schakelaar
+* 🗃️ **Chatgeschiedenis** opgeslagen in een lokaal bestand
+* 🔐 **API-sleutel** prompt bij eerste gebruik
+* 📋 **Gebruiksvriendelijk menu** (Geschiedenis wissen, Spraak in-/uitschakelen, Taalkeuze voor TTS, Afsluiten)
 
 ---
 
-## 📦 **Requirements**
+## 📦 **Vereisten**
 
-Install the necessary dependencies:
+Installeer de benodigde dependencies:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-Or manually:
+Of handmatig:
 
 ```bash
 pip install tk pyttsx3 SpeechRecognition google-generativeai
@@ -32,48 +32,33 @@ pip install tk pyttsx3 SpeechRecognition google-generativeai
 
 ---
 
-## 🚀 **How to Run**
+## 🚀 **Hoe te starten**
 
-### ▶️ Run from source (requires Python):
+### ▶️ Start vanuit de bron (vereist Python):
 
 ```bash
-python aiva.py
+python Aiva.chatbot.py
 ```
 
-### 💻 Run the compiled app:
+### 💻 Start de gecompileerde app:
 
 ```bash
 dist/AIVA.exe
 ```
 
-> ℹ️ First launch will ask for your **Gemini API Key**.
+> ℹ️ Bij de eerste keer opstarten wordt om je **Gemini API-sleutel** gevraagd.
 
 ---
 
-## 🛠️ **Build the App (.exe)**
+## 🛠️ **De app bouwen (.exe)**
 
-Use [PyInstaller](https://pyinstaller.org/) to compile to a standalone executable:
+Gebruik [PyInstaller](https://pyinstaller.org/) om een standalone executable te maken:
 
 ```bash
-pyinstaller --noconfirm --onefile --windowed --icon=AIVA.ico --name=AIVA main.py
+pyinstaller --noconfirm --onefile --windowed --icon=AIVA.ico --name=AIVA Aiva.chatbot.py
 ```
 
-Output will be in the `dist/` folder.
-
----
-
-## 📁 **Project Structure**
-
-```
-📂 AIVA-Chatbot/
-├── main.py              # Main application file
-├── README.md            # Project documentation
-├── requirements.txt     # Python libraries
-├── .gitignore           # Git ignored files
-├── dist/                # Executable output folder
-├── build/               # PyInstaller build folder
-└── chat_history.txt     # Auto-generated chat history
-```
+De output komt in de map `dist/`.
 
 ---
 
@@ -90,13 +75,13 @@ chat_history.txt
 
 ---
 
-## 🧠 **Notes**
+## 🧠 **Notities**
 
-* API key is **only kept in memory** (not saved).
-* Ensure internet access during API use.
+* API-sleutel wordt **alleen in het geheugen gehouden** (niet opgeslagen).
+* Zorg voor internetverbinding tijdens gebruik van de API.
 
 ---
 
 ## ⚠️ **Disclaimer**
 
-This project uses **Google Gemini API** via `google-generativeai`. You must provide your own API key to use the chatbot.
+Dit project gebruikt de **Google Gemini API** via `google-generativeai`. Je moet je eigen API-sleutel aanleveren om de chatbot te kunnen gebruiken.
