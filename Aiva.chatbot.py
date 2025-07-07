@@ -1,72 +1,71 @@
+import os
 import tkinter as tk
 from tkinter import scrolledtext, messagebox, PhotoImage
-import speech_recognition as sr
-import google.generativeai as genai
 import threading
-import os
 import asyncio
-import edge_tts
+import speech_recognition as sr
 from playsound import playsound
-api_key = None
+import edge_tts
+import google.generativeai as genai
 
+# ========== CONFIG ========== #
+HISTORY_FILE = "chat_history.txt"
+DEFAULT_BG = "#e9f2fb"
+DEFAULT_ACCENT = "#4a90e2"
+VOICE_EN = "en-US-JennyNeural"
+VOICE_NL = "nl-NL-FennaNeural"
+LOGO_PATH = "AIVALOGO.png"
+ICO_PATH = os.path.abspath("logo.ico")
+API_KEY = None
 
-# === BASISINSTELLINGEN ===
-history_file = "chat_history.txt"
+# ========== CHAT MEMORY ========== #
+chat_history = []
 
-# Licht thema standaard
-default_bg = "#e9f2fb"
-default_accent = "#4a90e2"
-
-# === TEXT-TO-SPEECH ===
-async def edge_speak(text, voice="en-US-JennyNeural"):
+# ========== TEXT-TO-SPEECH ========== #
+async def edge_speak(text, voice=VOICE_EN):
     filename = "output.mp3"
-    communicate = edge_tts.Communicate(text, voice)
-    await communicate.save(filename)
+    await edge_tts.Communicate(text, voice).save(filename)
     playsound(filename)
     os.remove(filename)
 
 def speak_text(text):
     lang = voice_language.get()
-    voice = "nl-NL-FennaNeural" if lang == 'nl-NL' else "en-US-JennyNeural"
+    voice = VOICE_NL if lang == 'nl-NL' else VOICE_EN
     threading.Thread(target=lambda: asyncio.run(edge_speak(text, voice))).start()
 
-# === STEMINSTELLINGEN ===
-def set_voice_language(lang_code):
-    print(f"Voice language set to {lang_code}")
+# ========== GEMINI AI ========== #
+def get_gemini_response(history):
+    if not API_KEY:
+        return "Error: API key not set."
+    try:
+        genai.configure(api_key=API_KEY)
+        model = genai.GenerativeModel("gemini-1.5-flash")
+        response = model.generate_content(history)
+        return response.text if hasattr(response, "text") else "Geen geldig antwoord ontvangen."
+    except Exception as e:
+        return f"Er ging iets mis:\n{str(e)}"
 
-def on_voice_language_change(*args):
-    lang = voice_language.get()
-    set_voice_language(lang)
-
-# === CHATGESCHIEDENIS ===
+# ========== CHATGESCHIEDENIS ========== #
 def save_to_history(speaker, message):
-    with open(history_file, "a", encoding="utf-8") as file:
+    with open(HISTORY_FILE, "a", encoding="utf-8") as file:
         file.write(f"{speaker}: {message}\n")
 
 def load_history():
-    if os.path.exists(history_file):
-        with open(history_file, "r", encoding="utf-8") as file:
+    if os.path.exists(HISTORY_FILE):
+        with open(HISTORY_FILE, "r", encoding="utf-8") as file:
             return file.read()
     return ""
 
 def clear_history():
-    if os.path.exists(history_file):
-        open(history_file, "w").close()
+    global chat_history
+    chat_history = []
+    if os.path.exists(HISTORY_FILE):
+        open(HISTORY_FILE, "w").close()
     chat_area.config(state='normal')
     chat_area.delete(1.0, tk.END)
     chat_area.config(state='disabled')
 
-# === GEMINI AI ===
-def get_gemini_response(user_input):
-    if not client:
-        return "Error: API key not set."
-    try:
-        resp = client.models.generate_content(model='gemini-2.0-flash', contents=user_input)
-        return resp.text
-    except Exception as e:
-        return f"Error: {e}"
-
-# === SPEECH TO TEXT ===
+# ========== STEM NAAR TEKST ========== #
 def listen_and_insert():
     recognizer = sr.Recognizer()
     with sr.Microphone() as source:
@@ -75,152 +74,121 @@ def listen_and_insert():
             chat_area.insert(tk.END, "🎙️ Listening...\n", "bot")
             chat_area.config(state='disabled')
             chat_area.see(tk.END)
-
             audio = recognizer.listen(source, timeout=5)
-            lang = voice_language.get()
-            text = recognizer.recognize_google(audio, language=lang)
+            text = recognizer.recognize_google(audio, language=voice_language.get())
             entry.insert(tk.END, text)
             send_message()
         except Exception as e:
             messagebox.showerror("Voice Input Error", str(e))
 
-# === VERZEND BERICHT ===
+# ========== BERICHT VERZENDEN ========== #
 def send_message():
     user_input = entry.get().strip()
     if not user_input:
         return
-
+    entry.delete(0, tk.END)
     chat_area.config(state='normal')
     chat_area.insert(tk.END, f"Gebruiker: {user_input}\n", "user")
-    chat_area.see(tk.END)
-    entry.delete(0, tk.END)
     save_to_history("Gebruiker", user_input)
+    chat_area.see(tk.END)
 
-    if not api_key:
-        chat_area.insert(tk.END, "AIVA: Error: API key not set.\n", "bot")
-        chat_area.config(state='disabled')
-        return
+    chat_history.append({"role": "user", "parts": user_input})
 
-    try:
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel("gemini-1.5-flash")
-        response = model.generate_content(user_input)
+    bot_resp = get_gemini_response(chat_history)
 
-        if hasattr(response, "text"):
-            bot_resp = response.text
-        else:
-            bot_resp = "Geen geldig antwoord ontvangen."
-    except Exception as e:
-        bot_resp = f"Er ging iets mis:\n{str(e)}"
+    chat_history.append({"role": "model", "parts": bot_resp})
 
     chat_area.insert(tk.END, f"AIVA: {bot_resp}\n\n", "bot")
     save_to_history("AIVA", bot_resp)
-
     if voice_output_enabled.get():
         speak_text(bot_resp)
 
     chat_area.config(state='disabled')
     chat_area.see(tk.END)
 
-
-
-# === DARK MODE TOGGLE ===
+# ========== DONKER THEMA ========== #
 def toggle_dark_mode():
-    if dark_mode_enabled.get():
-        bg, fg = "#2E2E2E", "white"
-        chat_area.configure(bg="#1E1E1E", fg=fg, insertbackground=fg)
-        entry.configure(bg="#2B2B2B", fg=fg, insertbackground=fg)
-        entry_frame.configure(bg=bg)
-        root.configure(bg=bg)
-        title.configure(bg=bg, fg=fg)
-        chat_area.tag_config("user", foreground=fg)
-        chat_area.tag_config("bot", foreground=fg)
-    else:
-        bg, fg = default_bg, "black"
-        chat_area.configure(bg="white", fg=fg, insertbackground=fg)
-        entry.configure(bg="white", fg=fg, insertbackground=fg)
-        entry_frame.configure(bg=bg)
-        root.configure(bg=bg)
-        title.configure(bg=bg, fg=default_accent)
-        chat_area.tag_config("user", foreground="black")
-        chat_area.tag_config("bot", foreground=default_accent)
+    is_dark = dark_mode_enabled.get()
+    bg = "#2E2E2E" if is_dark else DEFAULT_BG
+    fg = "white" if is_dark else "black"
+    chat_bg = "#1E1E1E" if is_dark else "white"
+    entry_bg = "#2B2B2B" if is_dark else "white"
 
+    root.configure(bg=bg)
+    entry_frame.configure(bg=bg)
+    chat_area.configure(bg=chat_bg, fg=fg, insertbackground=fg)
+    entry.configure(bg=entry_bg, fg=fg, insertbackground=fg)
+    title.configure(bg=bg, fg=fg if is_dark else DEFAULT_ACCENT)
 
+    chat_area.tag_config("user", foreground=fg)
+    chat_area.tag_config("bot", foreground=DEFAULT_ACCENT if not is_dark else fg)
 
-# === API POPUP ===
+# ========== API-SLEUTEL POPUP ========== #
 def ask_for_api():
+    def save_api():
+        global API_KEY
+        api = api_entry.get().strip()
+        if not api:
+            messagebox.showerror("Error", "Voer een API-sleutel in.")
+            return
+        try:
+            genai.configure(api_key=api)
+            if not hasattr(genai.GenerativeModel("gemini-1.5-flash").generate_content("Hallo!"), 'text'):
+                raise Exception("Ongeldig AI antwoord.")
+            API_KEY = api
+            api_window.destroy()
+        except Exception as e:
+            messagebox.showerror("API Error", f"Verbinding mislukt:\n{str(e)}")
+
     def on_close():
         if not api_entry.get().strip():
             root.destroy()
 
-    def save_api():
-        global api_key
-        api = api_entry.get().strip()
-
-        if not api:
-            messagebox.showerror("Error", "Voer een API-sleutel in.")
-            return
-
-        try:
-            genai.configure(api_key=api)
-            model = genai.GenerativeModel("gemini-1.5-flash")
-            test_resp = model.generate_content("Hallo!")
-            if not hasattr(test_resp, 'text'):
-                raise Exception("Ongeldig AI antwoord.")
-
-            api_key = api  # <-- Hier sla je de werkende sleutel op
-            api_window.destroy()
-
-        except Exception as e:
-            messagebox.showerror("API Error", f"Verbinding mislukt:\n{str(e)}")
-
     api_window = tk.Toplevel(root)
-    api_window.geometry('500x100')
     api_window.title("API-sleutel invoeren")
-    # Voeg logo toe aan popupvenster (icoon rechtsboven)
-    try:
-        api_window.iconphoto(False, logo)
-    except:
-        pass
+    api_window.geometry('500x100')
     api_window.transient(root)
     api_window.grab_set()
     api_window.focus()
     api_window.protocol("WM_DELETE_WINDOW", on_close)
+
+    try:
+        api_window.iconphoto(False, logo)
+    except:
+        pass
+
     tk.Label(api_window, text='API Key:').pack(side='left', padx=10, pady=20)
     api_entry = tk.Entry(api_window)
     api_entry.pack(side='left', fill=tk.X, expand=True, padx=10)
     tk.Button(api_window, text="Verstuur", command=save_api).pack(side='left', padx=10)
     api_entry.focus()
 
-
-
-# === GUI ===
-import os
-
+# ========== MAIN GUI ========== #
 root = tk.Tk()
-ico_path = os.path.abspath("logo.ico")
-root.iconbitmap(ico_path)
 root.title("AIVA - Jouw Chatbot Assistent")
 root.geometry("550x600")
-root.configure(bg=default_bg)
+root.configure(bg=DEFAULT_BG)
+root.iconbitmap(ICO_PATH)
 
-
-
+# === Logo / Titel === #
 try:
-    logo = PhotoImage(file="AIVALOGO.png")
+    logo = PhotoImage(file=LOGO_PATH)
     root.iconphoto(False, logo)
     logo_img = logo.subsample(2, 2)
-    tk.Label(root, image=logo_img, bg=default_bg).pack(pady=10)
+    tk.Label(root, image=logo_img, bg=DEFAULT_BG).pack(pady=10)
 except:
-    tk.Label(root, text="AIVA", font=("Arial", 24, "bold"), bg=default_bg, fg=default_accent).pack(pady=10)
+    tk.Label(root, text="AIVA", font=("Arial", 24, "bold"), bg=DEFAULT_BG, fg=DEFAULT_ACCENT).pack(pady=10)
 
-# === Variabelen ===
+title = tk.Label(root, text="AIVA", font=("Arial", 18), bg=DEFAULT_BG, fg=DEFAULT_ACCENT)
+title.pack()
+
+# === Variabelen === #
 voice_output_enabled = tk.BooleanVar(value=False)
 dark_mode_enabled = tk.BooleanVar(value=False)
 voice_language = tk.StringVar(value='en-US')
-voice_language.trace_add('write', on_voice_language_change)
+voice_language.trace_add('write', lambda *args: None)
 
-# === Menu ===
+# === Menu === #
 menu = tk.Menu(root)
 settings = tk.Menu(menu, tearoff=0)
 settings.add_checkbutton(label="Donker Thema", variable=dark_mode_enabled, command=toggle_dark_mode)
@@ -233,45 +201,31 @@ settings.add_command(label="Verwijder geschiedenis", command=clear_history)
 menu.add_cascade(label="Opties", menu=settings)
 root.config(menu=menu)
 
-# === Titel ===
-title = tk.Label(root, text="AIVA", font=("Arial", 18), bg=default_bg, fg=default_accent)
-title.pack()
-
-# === Chat ===
+# === Chatveld === #
 chat_area = scrolledtext.ScrolledText(root, height=20, width=65, state='disabled', font=("Arial", 10), bg="white")
 chat_area.pack(pady=10)
 chat_area.tag_config("user", foreground="black")
-chat_area.tag_config("bot", foreground=default_accent)
+chat_area.tag_config("bot", foreground=DEFAULT_ACCENT)
 
-# === Invoerveld ===
-entry_frame = tk.Frame(root, bg=default_bg)
+# === Invoerveld + Knoppen === #
+entry_frame = tk.Frame(root, bg=DEFAULT_BG)
 entry_frame.pack(pady=5, fill=tk.X, padx=10)
-
-# === Layoutconfiguratie (zorgt dat het veld meegroeit) ===
 entry_frame.columnconfigure(0, weight=1)
 
-# === Invoerveld ===
 entry = tk.Entry(entry_frame, font=("Arial", 12))
 entry.grid(row=0, column=0, sticky="ew", padx=(0, 5))
 entry.bind("<Return>", lambda event: send_message())
 
-# === Verzendknop ===
-send_button = tk.Button(entry_frame, text="Stuur naar AIVA", font=("Arial", 11, "bold"),
-                        command=send_message, bg=default_accent, fg="white", width=16)
-send_button.grid(row=0, column=1, padx=5)
+tk.Button(entry_frame, text="Stuur naar AIVA", font=("Arial", 11, "bold"),
+          command=send_message, bg=DEFAULT_ACCENT, fg="white", width=16).grid(row=0, column=1, padx=5)
 
-# === Microfoonknop ===
-mic_button = tk.Button(entry_frame, text="🎤", font=("Arial", 11),
-                       command=lambda: threading.Thread(target=listen_and_insert).start())
-mic_button.grid(row=0, column=2)
+tk.Button(entry_frame, text="🎤", font=("Arial", 11),
+          command=lambda: threading.Thread(target=listen_and_insert).start()).grid(row=0, column=2)
 
-
-
-# === Start ===
+# === Startprogramma === #
 chat_area.config(state='normal')
 chat_area.insert(tk.END, load_history())
 chat_area.config(state='disabled')
 toggle_dark_mode()
-set_voice_language(voice_language.get())
 ask_for_api()
 root.mainloop()
