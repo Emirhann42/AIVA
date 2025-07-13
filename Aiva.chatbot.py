@@ -15,7 +15,7 @@ DEFAULT_ACCENT = "#4a90e2"
 VOICE_EN = "en-US-JennyNeural"
 VOICE_NL = "nl-NL-FennaNeural"
 LOGO_PATH = "AIVALOGO.png"
-ICO_PATH = os.path.abspath("logo.ico")
+ICO_PATH = os.path.abspath("../AIVA.ico")
 API_KEY = None
 
 # ========== CHAT MEMORY ========== #
@@ -119,6 +119,7 @@ def toggle_dark_mode():
     chat_area.configure(bg=chat_bg, fg=fg, insertbackground=fg)
     entry.configure(bg=entry_bg, fg=fg, insertbackground=fg)
     title.configure(bg=bg, fg=fg if is_dark else DEFAULT_ACCENT)
+    logo_label.configure(bg=bg)
 
     chat_area.tag_config("user", foreground=fg)
     chat_area.tag_config("bot", foreground=DEFAULT_ACCENT if not is_dark else fg)
@@ -175,9 +176,11 @@ try:
     logo = PhotoImage(file=LOGO_PATH)
     root.iconphoto(False, logo)
     logo_img = logo.subsample(2, 2)
-    tk.Label(root, image=logo_img, bg=DEFAULT_BG).pack(pady=10)
+    logo_label = tk.Label(root, image=logo_img, bg=DEFAULT_BG)
+    logo_label.pack(pady=10)
 except:
-    tk.Label(root, text="AIVA", font=("Arial", 24, "bold"), bg=DEFAULT_BG, fg=DEFAULT_ACCENT).pack(pady=10)
+    logo_label = tk.Label(root, text="AIVA", font=("Arial", 24, "bold"), bg=DEFAULT_BG, fg=DEFAULT_ACCENT)
+    logo_label.pack(pady=10)
 
 title = tk.Label(root, text="AIVA", font=("Arial", 18), bg=DEFAULT_BG, fg=DEFAULT_ACCENT)
 title.pack()
