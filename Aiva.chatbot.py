@@ -14,7 +14,7 @@ DEFAULT_BG = "#e9f2fb"
 DEFAULT_ACCENT = "#4a90e2"
 VOICE_EN = "en-US-JennyNeural"
 VOICE_NL = "nl-NL-FennaNeural"
-LOGO_PATH = "AIVALOGO.png"
+LOGO_PATH = "../AIVALOGO.png"
 ICO_PATH = os.path.abspath("../AIVA.ico")
 API_KEY = None
 
